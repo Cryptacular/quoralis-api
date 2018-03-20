@@ -1,14 +1,23 @@
-var express = require('express');
-var app = express();
-var request = require('request');
-var xml2js = require('xml2js');
+const express = require('express');
+const helmet = require('helmet')
+const request = require('request');
+const xml2js = require('xml2js');
+const nodemailer = require('nodemailer');
+const validator = require('express-validator');
+const { check, validationResult } = require('express-validator/check');
 
-app.use(function(req, res, next) {
-    res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    next();
+const app = express();
+
+app.use(helmet());
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
 });
+
+app.use(express.json());
 
 var port = process.env.PORT || 8080;
 
@@ -20,15 +29,77 @@ router.get('/', function(req, res) {
 
 router.get('/posts', function(req, res) {
     request('https://medium.com/feed/quoralis', function(error, response, body) {
-            if (!error) {
-                xml2js.parseString(body, function(error, result) {
-                    console.log('/posts called at ' + new Date());
-                    res.json(result.rss.channel);
-                });
-            } else {
-                res.error(error.message);
-            }
+        if (!error) {
+            xml2js.parseString(body, function(error, result) {
+                console.log('/posts called at ' + new Date());
+                res.json(result.rss.channel);
+            });
+        } else {
+            res.error(error.message);
+        }
+    });
+});
+
+router.post('/contact', [
+    check('name')
+        .isLength({ min: 1 })
+        .withMessage('Name is required'),
+    check('message')
+        .isLength({ min: 1 })
+        .withMessage('Message is required'),
+    check('email')
+        .isEmail()
+        .withMessage('That email doesn\'t look right')
+], function(req, res) {
+    const errors = validationResult(req);
+    
+    if (!errors.isEmpty()) {
+        res.send({
+            status: 'Bad request',
+            statusCode: 400,
+            message: 'Please fill in the required fields.',
+            errors: errors.array()
         });
+        return;
+    }
+    
+    const { name, email, message } = req.body;
+    
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.quoralis.com',
+        port: 587,
+        secure: false,
+        auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASSWORD
+        }
+    });
+    
+    const mailOptions = {
+        from: 'info@quoralis.com',
+        replyTo: `'${name}' <${email}>`,
+        to: 'info@quoralis.com',
+        subject: `Enquiry from ${name} - Quoralis`,
+        text: `From: ${name} <${email}>\n\nMessage: ${message}`
+    };
+    
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            console.log(error);
+            res.send({
+                status: 'Internal Server Error',
+                statusCode: 500,
+                message: 'Unknown error. Please try again.'
+            });
+        } else {
+            console.log(`Email sent: ${email}`);
+            res.send({
+                status: 'OK',
+                statusCode: 200,
+                message: 'Thanks! We\'ll get back to you as soon as possible.'
+            });
+        }
+    });
 });
 
 app.use('/', router);
