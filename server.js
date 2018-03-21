@@ -3,7 +3,6 @@ const helmet = require('helmet')
 const request = require('request');
 const xml2js = require('xml2js');
 const nodemailer = require('nodemailer');
-const validator = require('express-validator');
 const { check, validationResult } = require('express-validator/check');
 
 const app = express();
@@ -11,10 +10,10 @@ const app = express();
 app.use(helmet());
 
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  next();
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    next();
 });
 
 app.use(express.json());
@@ -72,6 +71,9 @@ router.post('/contact', [
         auth: {
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASSWORD
+        },
+        tls: {
+            rejectUnauthorized: false
         }
     });
     
@@ -83,7 +85,7 @@ router.post('/contact', [
         text: `From: ${name} <${email}>\n\nMessage: ${message}`
     };
     
-    transporter.sendMail(mailOptions, (error, info) => {
+    transporter.sendMail(mailOptions, (error) => {
         if (error) {
             console.log(error);
             res.send({
