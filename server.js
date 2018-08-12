@@ -66,7 +66,7 @@ router.post('/contact', [
     const { name, email, message } = req.body;
     
     const transporter = nodemailer.createTransport({
-        host: 'smtp.quoralis.com',
+        host: 'mail.quoralis.com',
         port: 587,
         secure: false,
         auth: {
