@@ -4,6 +4,7 @@ const request = require('request');
 const xml2js = require('xml2js');
 const nodemailer = require('nodemailer');
 const { check, validationResult } = require('express-validator/check');
+const config = require('./config.json');
 
 const app = express();
 
@@ -18,7 +19,7 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
-var port = process.env.PORT || 8080;
+var port = config.PORT || 8080;
 
 var router = express.Router();
 
@@ -69,8 +70,8 @@ router.post('/contact', [
         port: 587,
         secure: false,
         auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASSWORD
+            user: config.SMTP_USER,
+            pass: config.SMTP_PASSWORD
         },
         tls: {
             rejectUnauthorized: false
