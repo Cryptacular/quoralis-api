@@ -35,7 +35,12 @@ router.get('/posts', function(req, res) {
                 res.json(result.rss.channel);
             });
         } else {
-            res.error(error.message);
+            console.log(error);
+            res.send({
+                status: 'Internal Server Error',
+                statusCode: 500,
+                message: 'Unknown error. Please try again.'
+            });
         }
     });
 });
